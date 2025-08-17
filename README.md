@@ -4,7 +4,7 @@ A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides inte
 
 ## Overview
 
-`swift-format-proxy` is a command-line utility that acts as an intelligent wrapper around Xcode's bundled `swift-format` tool (accessed via `xcrun`). It automatically detects common Swift project structures and applies sensible default formatting options, while maintaining full compatibility with the underlying `swift-format` command. This tool is specifically designed for the Xcode-bundled version and cannot be used with standalone swift-format packages or VS Code extensions.
+`swift-format-proxy` is a command-line utility that acts as an intelligent wrapper around Xcode's bundled `swift-format` tool (accessed via `xcrun`). It automatically detects common Swift project structures and applies sensible default formatting options, while maintaining full compatibility with the underlying `swift-format` command. The primary use case is to enable the apple-swift-format VS Code extension to work with Xcode's bundled swift-format tool.
 
 ## Features
 
@@ -20,7 +20,7 @@ A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides inte
 - Swift 6.1 or later
 - Xcode's bundled `swift-format` available via `xcrun`
 
-**Note**: This tool specifically works with Xcode's bundled `swift-format` and cannot be used with standalone swift-format packages or VS Code extensions like `apple/swift-format`.
+**Note**: This tool specifically works with Xcode's bundled `swift-format` and is designed primarily for use with the apple-swift-format VS Code extension.
 
 ## Installation
 
@@ -45,15 +45,28 @@ A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides inte
    cp .build/release/swift-format-proxy /usr/local/bin/
    ```
 
-### Using Swift Package Manager
+## Usage
 
-You can also install directly using Swift Package Manager:
+### VS Code Integration
 
-```bash
-swift build -c release --package-path /path/to/swift-format-proxy
+To use this tool with the apple-swift-format VS Code extension, add the following to your VS Code settings:
+
+```json
+{
+  "apple-swift-format.path": [
+    "/path/to/swift-format-proxy"
+  ],
+  "apple-swift-format.configSearchPaths": [
+    "/path/to/your/.swift-format"
+  ],
+  "[swift]": {
+    "editor.defaultFormatter": "vknabel.vscode-apple-swift-format",
+    "editor.formatOnSave": true
+  }
+}
 ```
 
-## Usage
+Replace `/path/to/swift-format-proxy` with the actual path where you installed the tool (e.g., `/usr/local/bin/swift-format-proxy`).
 
 ### Basic Usage (Automatic Detection)
 
@@ -96,6 +109,7 @@ swift-format-proxy --help
 #### Pre-commit Hook
 
 Add to your `.git/hooks/pre-commit`:
+
 ```bash
 #!/bin/sh
 swift-format-proxy
