@@ -1,13 +1,13 @@
-name: Swift CI
+name: Build
 
 on:
     push:
         branches:
-            - main
+            - develop
             - 'feature/**'
     pull_request:
         branches:
-            - main
+            - develop
             - 'feature/**'
 
 jobs:
@@ -136,7 +136,7 @@ jobs:
     create-release:
         needs: build-universal-macos
         runs-on: ubuntu-latest
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/'))
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/feature/'))
 
         steps:
             - name: Checkout code
