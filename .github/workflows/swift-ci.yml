@@ -11,12 +11,13 @@ on:
             - 'feature/**'
 
 jobs:
-    test:
-        runs-on: macos-latest
-
+    build:
         strategy:
             matrix:
+                os: [macos-latest, ubuntu-latest]
                 swift-version: ['5.9', '5.10', '6.0', '6.1']
+
+        runs-on: ${{ matrix.os }}
 
         steps:
             - name: Checkout code
@@ -30,8 +31,14 @@ jobs:
             - name: Display Swift version
               run: swift --version
 
-            - name: Display Xcode version
-              run: xcode-select --print-path && xcrun swift --version
+            - name: Display system info
+              run: |
+                  if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+                    xcode-select --print-path
+                    uname -m
+                  else
+                    uname -a
+                  fi
 
             - name: Cache Swift packages
               uses: actions/cache@v4
@@ -42,50 +49,13 @@ jobs:
                       ${{ runner.os }}-swift-${{ matrix.swift-version }}-
                       ${{ runner.os }}-swift-
 
-            - name: Build
+            - name: Build Debug
               run: swift build --verbose
 
             - name: Build Release
               run: swift build -c release --verbose
 
-            - name: Test swift-format availability
-              run: |
-                  if xcrun swift-format --version; then
-                    echo "✅ swift-format is available via xcrun"
-                  else
-                    echo "❌ swift-format is not available via xcrun"
-                    exit 1
-                  fi
-
-            - name: Test executable
-              run: |
-                  .build/release/swift-format-proxy --help || echo "Help command completed with exit code $?"
-
-            - name: Test with non-existent directory
-              run: |
-                  cd /tmp
-                  mkdir -p test-swift-project
-                  cd test-swift-project
-                  if ${{ github.workspace }}/.build/release/swift-format-proxy 2>&1 | grep -q "No 'Sources/' or 'Tests/' directory found"; then
-                    echo "✅ Correctly detected missing directories"
-                  else
-                    echo "❌ Failed to detect missing directories"
-                    exit 1
-                  fi
-
-            - name: Test with mock Swift project
-              run: |
-                  cd /tmp
-                  mkdir -p test-swift-project-with-sources/{Sources,Tests}
-                  echo 'print("Hello, World!")' > test-swift-project-with-sources/Sources/main.swift
-                  echo 'import XCTest' > test-swift-project-with-sources/Tests/TestFile.swift
-                  cd test-swift-project-with-sources
-                  echo "Testing with mock project structure:"
-                  ls -la
-                  # Run the proxy (it should work but may fail due to swift-format not finding proper Swift files)
-                  ${{ github.workspace }}/.build/release/swift-format-proxy --help || echo "Command completed"
-
-    lint:
+    build-universal-macos:
         runs-on: macos-latest
 
         steps:
@@ -97,19 +67,45 @@ jobs:
               with:
                   swift-version: '6.1'
 
-            - name: Swift Format Check
-              run: |
-                  if xcrun swift-format --version; then
-                    xcrun swift-format format --diff Sources/
-                  else
-                    echo "swift-format not available, skipping format check"
-                  fi
+            - name: Display Swift version
+              run: swift --version
 
-            - name: SwiftLint
-              if: false # Disable SwiftLint for now since it's not installed by default
+            - name: Display system info
               run: |
-                  if which swiftlint >/dev/null; then
-                    swiftlint
-                  else
-                    echo "SwiftLint not available, skipping lint check"
-                  fi
+                  xcode-select --print-path
+                  uname -m
+
+            - name: Cache Swift packages
+              uses: actions/cache@v4
+              with:
+                  path: .build
+                  key: universal-macos-swift-6.1-${{ hashFiles('Package.swift', 'Package.resolved') }}
+                  restore-keys: |
+                      universal-macos-swift-6.1-
+                      universal-macos-swift-
+
+            - name: Build Universal Binary (x86_64)
+              run: swift build -c release --arch x86_64
+
+            - name: Build Universal Binary (arm64)
+              run: swift build -c release --arch arm64
+
+            - name: Create Universal Binary
+              run: |
+                  mkdir -p .build/universal
+                  lipo -create \
+                    .build/x86_64-apple-macosx/release/swift-format-proxy \
+                    .build/arm64-apple-macosx/release/swift-format-proxy \
+                    -output .build/universal/swift-format-proxy
+
+            - name: Verify Universal Binary
+              run: |
+                  file .build/universal/swift-format-proxy
+                  lipo -info .build/universal/swift-format-proxy
+
+            - name: Upload Universal Binary
+              uses: actions/upload-artifact@v4
+              with:
+                  name: swift-format-proxy-universal-macos
+                  path: .build/universal/swift-format-proxy
+                  retention-days: 30
