@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-format-proxy}",
+      "name": "Debug swift-format-proxy",
+      "program": "${workspaceFolder:swift-format-proxy}/.build/debug/swift-format-proxy",
+      "preLaunchTask": "swift: Build Debug swift-format-proxy"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-format-proxy}",
+      "name": "Release swift-format-proxy",
+      "program": "${workspaceFolder:swift-format-proxy}/.build/release/swift-format-proxy",
+      "preLaunchTask": "swift: Build Release swift-format-proxy"
+    }
+  ]
+}
