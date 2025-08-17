@@ -1,179 +1,228 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*'
+    push:
+        branches:
+            - main
+        tags:
+            - 'v*.*.*'
 
 jobs:
-  build-release:
-    runs-on: macos-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    build-release:
+        runs-on: macos-latest
+        if: startsWith(github.ref, 'refs/tags/v')
 
-    outputs:
-      version: ${{ steps.get-version.outputs.version }}
-      zip-name: ${{ steps.get-version.outputs.zip-name }}
+        outputs:
+            version: ${{ steps.get-version.outputs.version }}
+            zip-name: ${{ steps.get-version.outputs.zip-name }}
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
 
-      - name: Get version from tag
-        id: get-version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          ZIP_NAME="swift-format-proxy-${VERSION}"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "zip-name=${ZIP_NAME}" >> $GITHUB_OUTPUT
-          echo "Version: ${VERSION}"
-          echo "Zip Name: ${ZIP_NAME}"
+            - name: Get version from tag
+              id: get-version
+              run: |
+                  VERSION=${GITHUB_REF#refs/tags/}
+                  ZIP_NAME="swift-format-proxy-${VERSION}"
+                  echo "version=${VERSION}" >> $GITHUB_OUTPUT
+                  echo "zip-name=${ZIP_NAME}" >> $GITHUB_OUTPUT
+                  echo "Version: ${VERSION}"
+                  echo "Zip Name: ${ZIP_NAME}"
 
-      - name: Validate semantic version
-        run: |
-          VERSION=${{ steps.get-version.outputs.version }}
-          if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: Tag '$VERSION' does not follow semantic versioning (v#.#.#)"
-            exit 1
-          fi
-          echo "✅ Version $VERSION is valid semantic version"
+            - name: Validate semantic version
+              run: |
+                  VERSION=${{ steps.get-version.outputs.version }}
+                  if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "Error: Tag '$VERSION' does not follow semantic versioning (v#.#.#)"
+                    exit 1
+                  fi
+                  echo "✅ Version $VERSION is valid semantic version"
 
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: '6.1'
+            - name: Setup Swift
+              uses: swift-actions/setup-swift@v2
+              with:
+                  swift-version: '6.1'
 
-      - name: Display Swift version
-        run: swift --version
+            - name: Display Swift version
+              run: swift --version
 
-      - name: Display system info
-        run: |
-          xcode-select --print-path
-          uname -m
+            - name: Display system info
+              run: |
+                  xcode-select --print-path
+                  uname -m
 
-      - name: Cache Swift packages
-        uses: actions/cache@v4
-        with:
-          path: .build
-          key: release-macos-swift-6.1-${{ hashFiles('Package.swift', 'Package.resolved') }}
-          restore-keys: |
-            release-macos-swift-6.1-
-            release-macos-swift-
+            - name: Cache Swift packages
+              uses: actions/cache@v4
+              with:
+                  path: .build
+                  key: release-macos-swift-6.1-${{ hashFiles('Package.swift', 'Package.resolved') }}
+                  restore-keys: |
+                      release-macos-swift-6.1-
+                      release-macos-swift-
 
-      - name: Build Universal Binary (x86_64)
-        run: swift build -c release --arch x86_64
+            - name: Build Universal Binary (x86_64)
+              run: swift build -c release --arch x86_64
 
-      - name: Build Universal Binary (arm64)
-        run: swift build -c release --arch arm64
+            - name: Build Universal Binary (arm64)
+              run: swift build -c release --arch arm64
 
-      - name: Create Universal Binary
-        run: |
-          mkdir -p .build/universal
-          lipo -create \
-            .build/x86_64-apple-macosx/release/swift-format-proxy \
-            .build/arm64-apple-macosx/release/swift-format-proxy \
-            -output .build/universal/swift-format-proxy
+            - name: Create Universal Binary
+              run: |
+                  mkdir -p .build/universal
+                  lipo -create \
+                    .build/x86_64-apple-macosx/release/swift-format-proxy \
+                    .build/arm64-apple-macosx/release/swift-format-proxy \
+                    -output .build/universal/swift-format-proxy
 
-      - name: Verify Universal Binary
-        run: |
-          file .build/universal/swift-format-proxy
-          lipo -info .build/universal/swift-format-proxy
+            - name: Verify Universal Binary
+              run: |
+                  file .build/universal/swift-format-proxy
+                  lipo -info .build/universal/swift-format-proxy
 
-      - name: Create Bill of Materials
-        run: |
-          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          VERSION=${{ steps.get-version.outputs.version }}
-          cat > BUILDINFO.md << EOF
-          # Build Information
+            - name: Generate Changelog for Release
+              run: |
+                  VERSION=${{ steps.get-version.outputs.version }}
 
-          This file contains the Bill of Materials (BoM) for this swift-format-proxy release.
+                  # Create a comprehensive changelog for the release
+                  cat > CHANGELOG.md << 'EOF'
+                  # Changelog
 
-          ## Release Details
+                  This file contains the changelog for swift-format-proxy releases.
 
-          | Field | Value |
-          |-------|-------|
-          | **Version** | ${VERSION} |
-          | **Release Date** | ${BUILD_DATE} |
-          | **Git SHA** | ${{ github.sha }} |
-          | **Git Branch** | ${{ github.ref_name }} |
-          | **Repository** | ${{ github.repository }} |
-          | **Workflow** | ${{ github.workflow }} |
-          | **Runner OS** | macOS Latest |
-          | **Swift Version** | 6.1 |
-          | **Architecture** | Universal (x86_64 + arm64) |
-          | **Release Type** | Production Release |
+                  EOF
 
-          ## Files Included
+                  echo "## [$VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md
+                  echo "" >> CHANGELOG.md
 
-          - \`swift-format-proxy\` - Universal macOS binary
-          - \`README.md\` - Project documentation
-          - \`LICENSE\` - MIT License file
-          - \`BUILDINFO.md\` - This build information file
-          EOF
+                  # Get the previous tag to generate changelog between versions
+                  PREVIOUS_TAG=$(git tag -l "v*" --sort=-version:refname | grep -v "^$VERSION$" | head -n1)
 
-      - name: Create Release Archive
-        run: |
-          mkdir -p release
-          cp .build/universal/swift-format-proxy release/
-          cp README.md release/
-          cp LICENSE release/
-          cp BUILDINFO.md release/
-          cd release
-          zip -r ${{ steps.get-version.outputs.zip-name }}.zip .
-          mv ${{ steps.get-version.outputs.zip-name }}.zip ../
+                  if [ -n "$PREVIOUS_TAG" ]; then
+                    echo "### Changes since $PREVIOUS_TAG" >> CHANGELOG.md
+                    echo "" >> CHANGELOG.md
 
-      - name: Upload Release Archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.get-version.outputs.zip-name }}
-          path: ${{ steps.get-version.outputs.zip-name }}.zip
-          retention-days: 365
+                    # Get commits between previous tag and current tag
+                    git log --oneline --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H))" "$PREVIOUS_TAG..$VERSION" >> CHANGELOG.md
+                  else
+                    echo "### Initial Release" >> CHANGELOG.md
+                    echo "" >> CHANGELOG.md
+                    echo "This is the first release of swift-format-proxy." >> CHANGELOG.md
+                    echo "" >> CHANGELOG.md
 
-  create-github-release:
-    needs: build-release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+                    # Get all commits up to this tag
+                    git log --oneline --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H))" "$VERSION" >> CHANGELOG.md
+                  fi
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+                  echo "" >> CHANGELOG.md
+                  echo "" >> CHANGELOG.md
+                  echo "### Release Information" >> CHANGELOG.md
+                  echo "- **Version:** $VERSION" >> CHANGELOG.md
+                  echo "- **Release Date:** $(date +%Y-%m-%d)" >> CHANGELOG.md
+                  echo "- **Commit:** [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> CHANGELOG.md
+                  echo "- **Tag:** [\`$VERSION\`](https://github.com/${{ github.repository }}/releases/tag/$VERSION)" >> CHANGELOG.md
 
-      - name: Download Release Archive
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.build-release.outputs.zip-name }}
+                  echo "" >> CHANGELOG.md
+                  echo "---" >> CHANGELOG.md
+                  echo "*For the complete release notes and downloads, visit the [GitHub releases page](https://github.com/${{ github.repository }}/releases).*" >> CHANGELOG.md
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: swift-format-proxy ${{ needs.build-release.outputs.version }}
-          tag_name: ${{ needs.build-release.outputs.version }}
-          prerelease: false
-          generate_release_notes: true
-          files: ${{ needs.build-release.outputs.zip-name }}.zip
-          body: |
-            ## Swift Format Proxy ${{ needs.build-release.outputs.version }}
+            - name: Create Bill of Materials
+              run: |
+                  BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+                  VERSION=${{ steps.get-version.outputs.version }}
+                  cat > BUILDINFO.md << EOF
+                  # Build Information
 
-            Production release of swift-format-proxy.
+                  This file contains the Bill of Materials (BoM) for this swift-format-proxy release.
 
-            ### What's Included
-            - Universal macOS binary (x86_64 + arm64)
-            - Complete documentation
-            - Build information and Bill of Materials
+                  ## Release Details
 
-            ### Installation
-            1. Download and extract the zip file
-            2. Copy `swift-format-proxy` to a directory in your PATH (e.g., `/usr/local/bin/`)
-            3. Make it executable: `chmod +x /usr/local/bin/swift-format-proxy`
-            4. Configure your VS Code settings to use this tool with the apple-swift-format extension
+                  | Field | Value |
+                  |-------|-------|
+                  | **Version** | ${VERSION} |
+                  | **Release Date** | ${BUILD_DATE} |
+                  | **Git SHA** | ${{ github.sha }} |
+                  | **Git Branch** | ${{ github.ref_name }} |
+                  | **Repository** | ${{ github.repository }} |
+                  | **Workflow** | ${{ github.workflow }} |
+                  | **Runner OS** | macOS Latest |
+                  | **Swift Version** | 6.1 |
+                  | **Architecture** | Universal (x86_64 + arm64) |
+                  | **Release Type** | Production Release |
 
-            ### Usage
-            See the included README.md for detailed configuration instructions.
+                  ## Files Included
 
-            **Release Information:**
-            - Version: ${{ needs.build-release.outputs.version }}
-            - Commit: ${{ github.sha }}
-            - Universal Binary: x86_64 + arm64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  - \`swift-format-proxy\` - Universal macOS binary
+                  - \`README.md\` - Project documentation
+                  - \`LICENSE\` - MIT License file
+                  - \`CHANGELOG.md\` - Release changelog and version history
+                  - \`BUILDINFO.md\` - This build information file
+                  EOF
+
+            - name: Create Release Archive
+              run: |
+                  mkdir -p release
+                  cp .build/universal/swift-format-proxy release/
+                  cp README.md release/
+                  cp LICENSE release/
+                  cp CHANGELOG.md release/
+                  cp BUILDINFO.md release/
+                  cd release
+                  zip -r ${{ steps.get-version.outputs.zip-name }}.zip .
+                  mv ${{ steps.get-version.outputs.zip-name }}.zip ../
+
+            - name: Upload Release Archive
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ steps.get-version.outputs.zip-name }}
+                  path: ${{ steps.get-version.outputs.zip-name }}.zip
+                  retention-days: 365
+
+    create-github-release:
+        needs: build-release
+        runs-on: ubuntu-latest
+        if: startsWith(github.ref, 'refs/tags/v')
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download Release Archive
+              uses: actions/download-artifact@v4
+              with:
+                  name: ${{ needs.build-release.outputs.zip-name }}
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  name: swift-format-proxy ${{ needs.build-release.outputs.version }}
+                  tag_name: ${{ needs.build-release.outputs.version }}
+                  prerelease: false
+                  generate_release_notes: true
+                  files: ${{ needs.build-release.outputs.zip-name }}.zip
+                  body: |
+                      ## Swift Format Proxy ${{ needs.build-release.outputs.version }}
+
+                      Production release of swift-format-proxy.
+
+                      ### What's Included
+                      - Universal macOS binary (x86_64 + arm64)
+                      - Complete documentation
+                      - Release changelog with version history
+                      - Build information and Bill of Materials
+
+                      ### Installation
+                      1. Download and extract the zip file
+                      2. Copy `swift-format-proxy` to a directory in your PATH (e.g., `/usr/local/bin/`)
+                      3. Make it executable: `chmod +x /usr/local/bin/swift-format-proxy`
+                      4. Configure your VS Code settings to use this tool with the apple-swift-format extension
+
+                      ### Usage
+                      See the included README.md for detailed configuration instructions.
+
+                      **Release Information:**
+                      - Version: ${{ needs.build-release.outputs.version }}
+                      - Commit: ${{ github.sha }}
+                      - Universal Binary: x86_64 + arm64
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
