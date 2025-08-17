@@ -1,10 +1,10 @@
 # swift-format-proxy
 
-A smart proxy wrapper for Apple's `swift-format` tool that provides intelligent defaults and enhanced error handling for Swift code formatting.
+A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides intelligent defaults and enhanced error handling for Swift code formatting.
 
 ## Overview
 
-`swift-format-proxy` is a command-line utility that acts as an intelligent wrapper around Apple's `swift-format` tool. It automatically detects common Swift project structures and applies sensible default formatting options, while maintaining full compatibility with the underlying `swift-format` command.
+`swift-format-proxy` is a command-line utility that acts as an intelligent wrapper around Xcode's bundled `swift-format` tool (accessed via `xcrun`). It automatically detects common Swift project structures and applies sensible default formatting options, while maintaining full compatibility with the underlying `swift-format` command. This tool is specifically designed for the Xcode-bundled version and cannot be used with standalone swift-format packages or VS Code extensions.
 
 ## Features
 
@@ -16,9 +16,11 @@ A smart proxy wrapper for Apple's `swift-format` tool that provides intelligent 
 
 ## Prerequisites
 
-- macOS with Xcode Command Line Tools installed
+- macOS with Xcode Command Line Tools installed (required for `xcrun`)
 - Swift 6.1 or later
-- `xcrun` and `swift-format` available in the system
+- Xcode's bundled `swift-format` available via `xcrun`
+
+**Note**: This tool specifically works with Xcode's bundled `swift-format` and cannot be used with standalone swift-format packages or VS Code extensions like `apple/swift-format`.
 
 ## Installation
 
@@ -73,7 +75,7 @@ xcrun swift-format format -r Sources Tests --in-place
 
 ### Custom Arguments
 
-You can pass any arguments that `swift-format` accepts:
+You can pass any arguments that Xcode's `swift-format` accepts:
 
 ```bash
 # Format a specific file
@@ -110,18 +112,6 @@ check-format:
     swift-format-proxy --diff Sources/ Tests/
 ```
 
-#### Xcode Build Phase
-
-Add a "Run Script" build phase in Xcode:
-
-```bash
-if which swift-format-proxy >/dev/null; then
-  swift-format-proxy
-else
-  echo "warning: swift-format-proxy not installed"
-fi
-```
-
 ## Error Codes
 
 - **0**: Success
@@ -143,7 +133,7 @@ swift-format-proxy/
 ## How It Works
 
 1. **Environment Check**: Verifies that `xcrun` is available at `/usr/bin/xcrun`
-2. **Tool Availability**: Checks that `xcrun swift-format --version` runs successfully
+2. **Tool Availability**: Checks that `xcrun swift-format --version` runs successfully (Xcode's bundled version)
 3. **Argument Processing**: If no arguments are provided, automatically detects `Sources/` and `Tests/` directories
 4. **Execution**: Runs `xcrun swift-format` with the determined arguments, preserving all input/output streams
 
@@ -161,8 +151,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Related Projects
 
-- [apple/swift-format](https://github.com/apple/swift-format) - The official Swift code formatter
+- [apple/swift-format](https://github.com/apple/swift-format) - The standalone Swift code formatter (different from Xcode's bundled version)
 - [nicklockwood/SwiftFormat](https://github.com/nicklockwood/SwiftFormat) - Alternative Swift code formatter
+
+**Important**: This tool is specifically designed for Xcode's bundled `swift-format` and is not compatible with the standalone `apple/swift-format` package.
 
 ## Support
 
@@ -174,4 +166,4 @@ If you encounter any issues or have questions:
 
 ---
 
-**Note**: This tool requires Apple's `swift-format` to be installed and available via `xcrun`. If you're using a non-macOS environment, consider using alternative Swift formatting tools.
+**Note**: This tool requires Xcode's bundled `swift-format` to be installed and available via `xcrun`. It is not compatible with standalone swift-format packages or VS Code extensions. If you're using a non-macOS environment or prefer the standalone version, consider using alternative Swift formatting tools.
