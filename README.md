@@ -1,6 +1,6 @@
 # swift-format-proxy
 
-A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides intelligent defaults and enhanced error handling for Swift code formatting.
+A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides intelligent defaults, enhanced error handling, and flexible configuration options for Swift code formatting.
 
 ## Overview
 
@@ -9,6 +9,10 @@ A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides inte
 ## Features
 
 - **Intelligent Defaults**: Automatically formats `Sources/` and `Tests/` directories when no arguments are provided
+- **Flexible Configuration**: Manage proxy settings with the `config` subcommand
+- **Multiple Execution Modes**: Use Xcode's bundled swift-format (via `xcrun`) or swift-format from PATH
+- **XDG Compliance**: Configuration stored in XDG Base Directory compliant locations
+- **Verbose Output**: Optional detailed logging of operations
 - **Error Handling**: Provides clear error messages when `xcrun` or `swift-format` are unavailable
 - **Full Compatibility**: Passes through all arguments to the underlying `swift-format` tool
 - **Zero Configuration**: Works out of the box with standard Swift package layouts
@@ -16,11 +20,11 @@ A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides inte
 
 ## Prerequisites
 
-- macOS with Xcode Command Line Tools installed (required for `xcrun`)
+- macOS with Xcode Command Line Tools installed (required for `xcrun` mode)
 - Swift 6.1 or later
-- Xcode's bundled `swift-format` available via `xcrun`
+- Xcode's bundled `swift-format` available via `xcrun` OR standalone `swift-format` in PATH
 
-**Note**: This tool specifically works with Xcode's bundled `swift-format` and is designed primarily for use with the apple-swift-format VS Code extension.
+**Note**: This tool can work with either Xcode's bundled `swift-format` (default) or standalone swift-format installations. It's designed primarily for use with the apple-swift-format VS Code extension.
 
 ## Installation
 
@@ -46,6 +50,38 @@ A smart proxy wrapper for Xcode's bundled `swift-format` tool that provides inte
    ```
 
 ## Usage
+
+### Configuration Management
+
+`swift-format-proxy` includes a configuration system to manage proxy behavior:
+
+```bash
+# Show current configuration
+swift-format-proxy config --show
+
+# Initialize configuration file
+swift-format-proxy config --initialize
+
+# Enable verbose output
+swift-format-proxy config --enable-verbose
+
+# Use swift-format from PATH instead of xcrun
+swift-format-proxy config --enable-bypass-xcrun
+
+# Set custom xcrun path
+swift-format-proxy config --set-xcrun-path /custom/path/to/xcrun
+
+# Disable verbose output
+swift-format-proxy config --disable-verbose
+
+# Use xcrun swift-format (default)
+swift-format-proxy config --disable-bypass-xcrun
+```
+
+Configuration is stored in XDG Base Directory compliant locations:
+
+- `$XDG_CONFIG_HOME/swift-format-proxy/config.json`
+- `~/.config/swift-format-proxy/config.json` (fallback)
 
 ### VS Code Integration
 
@@ -77,7 +113,11 @@ When run without arguments in a Swift package directory, `swift-format-proxy` wi
 - Apply changes in-place
 
 ```bash
+# Format using intelligent defaults (format subcommand is default)
 swift-format-proxy
+
+# Explicitly use format subcommand
+swift-format-proxy format
 ```
 
 This is equivalent to running:
@@ -88,7 +128,7 @@ xcrun swift-format format -r Sources Tests --in-place
 
 ### Custom Arguments
 
-You can pass any arguments that Xcode's `swift-format` accepts:
+You can pass any arguments that `swift-format` accepts to the format subcommand:
 
 ```bash
 # Format a specific file
@@ -98,6 +138,13 @@ swift-format-proxy format MyFile.swift
 swift-format-proxy format --diff Sources/
 
 # Use custom configuration
+swift-format-proxy format --configuration .swift-format Sources/
+
+# Show swift-format help
+swift-format-proxy format --help
+
+# Show swift-format-proxy help
+swift-format-proxy --help
 swift-format-proxy format --configuration .swift-format Sources/
 
 # Show help
@@ -112,18 +159,22 @@ Add to your `.git/hooks/pre-commit`:
 
 ```bash
 #!/bin/sh
-swift-format-proxy
+swift-format-proxy format
 git add -A
 ```
 
 #### Makefile Integration
 
-```makefile
+```bash
 format:
-    swift-format-proxy
+    swift-format-proxy format
 
 check-format:
-    swift-format-proxy --diff Sources/ Tests/
+    swift-format-proxy format --diff Sources/ Tests/
+
+setup-format:
+    swift-format-proxy config --initialize
+    swift-format-proxy config --enable-verbose
 ```
 
 ## Error Codes
@@ -146,10 +197,17 @@ swift-format-proxy/
 
 ## How It Works
 
-1. **Environment Check**: Verifies that `xcrun` is available at `/usr/bin/xcrun`
-2. **Tool Availability**: Checks that `xcrun swift-format --version` runs successfully (Xcode's bundled version)
-3. **Argument Processing**: If no arguments are provided, automatically detects `Sources/` and `Tests/` directories
-4. **Execution**: Runs `xcrun swift-format` with the determined arguments, preserving all input/output streams
+1. **Configuration Loading**: Loads user configuration from XDG-compliant config file (if exists)
+2. **Environment Check**: Verifies that `xcrun` is available (unless bypass mode is enabled)
+3. **Tool Availability**: Checks that the configured swift-format tool runs successfully
+4. **Argument Processing**: If no arguments are provided to the format command, automatically detects `Sources/` and `Tests/` directories
+5. **Execution**: Runs the configured swift-format tool with the determined arguments, preserving all input/output streams
+
+### Execution Modes
+
+- **xcrun mode** (default): Uses `xcrun swift-format` with Xcode's bundled version
+- **PATH mode**: Uses `swift-format` from system PATH (enabled with `--enable-bypass-xcrun`)
+- **Custom xcrun**: Uses custom xcrun path (set with `--set-xcrun-path`)
 
 ## Contributing
 
@@ -180,4 +238,4 @@ If you encounter any issues or have questions:
 
 ---
 
-**Note**: This tool requires Xcode's bundled `swift-format` to be installed and available via `xcrun`. It is not compatible with standalone swift-format packages or VS Code extensions. If you're using a non-macOS environment or prefer the standalone version, consider using alternative Swift formatting tools.
+**Note**: This tool supports both Xcode's bundled `swift-format` (via `xcrun`) and standalone swift-format installations (via PATH). The default mode uses Xcode's bundled version, but you can configure it to use other installations with the config subcommand. For non-macOS environments or when you prefer standalone versions, enable bypass mode with `swift-format-proxy config --enable-bypass-xcrun`.
