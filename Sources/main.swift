@@ -78,9 +78,6 @@ struct ProxyConfiguration: Codable {
     /// Whether to bypass xcrun and use swift-format from PATH
     var bypassXcrun: Bool = false
 
-    /// Custom xcrun path (if not using /usr/bin/xcrun)
-    var xcrunPath: String = "/usr/bin/xcrun"
-
     /// Configuration file version for future compatibility
     var version: String = "1.0"
 }
@@ -110,9 +107,6 @@ struct Config: ParsableCommand {
     @Flag(name: .long, help: "Disable bypassing xcrun (use xcrun swift-format)")
     var disableBypassXcrun: Bool = false
 
-    @Option(name: .long, help: "Set custom xcrun path")
-    var setXcrunPath: String?
-
     mutating func run() throws {
         let configPath = getConfigPath()
 
@@ -120,7 +114,7 @@ struct Config: ParsableCommand {
             try showConfig(configPath: configPath)
         } else if initialize {
             try initializeConfig(configPath: configPath)
-        } else if enableVerbose || disableVerbose || enableBypassXcrun || disableBypassXcrun || setXcrunPath != nil {
+        } else if enableVerbose || disableVerbose || enableBypassXcrun || disableBypassXcrun {
             try updateConfig(configPath: configPath)
         } else {
             throw ValidationError("Please specify an action: --show, --initialize, or set a configuration option")
@@ -159,7 +153,6 @@ struct Config: ParsableCommand {
         print("├─ Configuration file: \(configPath)")
         print("├─ Verbose output: \(config.verbose ? "enabled" : "disabled")")
         print("├─ Bypass xcrun: \(config.bypassXcrun ? "enabled (use PATH swift-format)" : "disabled (use xcrun)")")
-        print("├─ xcrun path: \(config.xcrunPath)")
         print("└─ Configuration version: \(config.version)")
 
         if !FileManager.default.fileExists(atPath: configPath) {
@@ -203,11 +196,6 @@ struct Config: ParsableCommand {
         if disableBypassXcrun {
             config.bypassXcrun = false
             changes.append("bypass xcrun: disabled (will use xcrun swift-format)")
-        }
-
-        if let xcrunPath = setXcrunPath {
-            config.xcrunPath = xcrunPath
-            changes.append("xcrun path: \(xcrunPath)")
         }
 
         if changes.isEmpty {
@@ -261,7 +249,7 @@ func isXcrunAvailable() -> Bool {
         return true
     } else {
         // Check if xcrun exists
-        return FileManager.default.isExecutableFile(atPath: config.xcrunPath)
+        return FileManager.default.isExecutableFile(atPath: "/usr/bin/xcrun")
     }
 }
 
@@ -276,7 +264,7 @@ func isSwiftFormatAvailable() -> Bool {
         process.arguments = ["swift-format", "--version"]
     } else {
         // Check xcrun swift-format
-        process.executableURL = URL(fileURLWithPath: config.xcrunPath)
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         process.arguments = ["swift-format", "--version"]
     }
 
@@ -327,11 +315,11 @@ func runSwiftFormat(arguments: [String]) -> Int32 {
         }
     } else {
         // Use xcrun swift-format
-        process.executableURL = URL(fileURLWithPath: config.xcrunPath)
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         process.arguments = ["swift-format"] + arguments
 
         if config.verbose {
-            fputs("swift-format-proxy: Running \(config.xcrunPath) swift-format \(arguments.joined(separator: " "))\n", stderr)
+            fputs("swift-format-proxy: Running /usr/bin/xcrun swift-format \(arguments.joined(separator: " "))\n", stderr)
         }
     }
 

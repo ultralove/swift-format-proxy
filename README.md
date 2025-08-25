@@ -68,9 +68,6 @@ swift-format-proxy config --enable-verbose
 # Use swift-format from PATH instead of xcrun
 swift-format-proxy config --enable-bypass-xcrun
 
-# Set custom xcrun path
-swift-format-proxy config --set-xcrun-path /custom/path/to/xcrun
-
 # Disable verbose output
 swift-format-proxy config --disable-verbose
 
@@ -205,9 +202,8 @@ swift-format-proxy/
 
 ### Execution Modes
 
-- **xcrun mode** (default): Uses `xcrun swift-format` with Xcode's bundled version
+- **xcrun mode** (default): Uses `/usr/bin/xcrun swift-format` with Xcode's bundled version
 - **PATH mode**: Uses `swift-format` from system PATH (enabled with `--enable-bypass-xcrun`)
-- **Custom xcrun**: Uses custom xcrun path (set with `--set-xcrun-path`)
 
 ## Contributing
 
