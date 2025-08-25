@@ -22,7 +22,43 @@
 // SOFTWARE.
 //
 
+import ArgumentParser
 import Foundation
+
+/// swift-format-proxy - A smart wrapper around Xcode's bundled swift-format tool
+@main
+struct SwiftFormatProxy: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "swift-format-proxy",
+        abstract: "A smart wrapper around Xcode's bundled swift-format tool",
+        version: "1.0.1",
+        helpNames: [.short, .long]
+    )
+
+    @Argument(
+        parsing: .remaining,
+        help: "Arguments to pass to swift-format. If no arguments are provided, defaults to formatting Sources/ and Tests/ directories."
+    )
+    var arguments: [String] = []
+
+    mutating func run() throws {
+        // Environment validation
+        guard isXcrunAvailable() else {
+            throw ValidationError("xcrun not found at /usr/bin/xcrun.")
+        }
+
+        guard isSwiftFormatAvailable() else {
+            throw ValidationError("'xcrun swift-format' is not available or failed to run.")
+        }
+
+        // Determine arguments to use
+        let argsToUse = arguments.isEmpty ? defaultFormatArguments() : arguments
+
+        // Run swift-format
+        let exitCode = runSwiftFormat(arguments: argsToUse)
+        throw ExitCode(exitCode)
+    }
+}
 
 /// Check if xcrun exists
 func isXcrunAvailable() -> Bool {
@@ -85,20 +121,3 @@ func runSwiftFormat(arguments: [String]) -> Int32 {
         return 1
     }
 }
-
-// ---- MAIN ----
-
-if !isXcrunAvailable() {
-    fputs("Error: xcrun not found at /usr/bin/xcrun.\n", stderr)
-    exit(127)
-}
-
-if !isSwiftFormatAvailable() {
-    fputs("Error: 'xcrun swift-format' is not available or failed to run.\n", stderr)
-    exit(126)
-}
-
-let userArgs = Array(CommandLine.arguments.dropFirst())
-let argsToUse = userArgs.isEmpty ? defaultFormatArguments() : userArgs
-
-exit(runSwiftFormat(arguments: argsToUse))

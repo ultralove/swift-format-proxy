@@ -1,5 +1,7 @@
 # Copilot Instructions for swift-format-proxy
 
+*Last updated: August 25, 2025*
+
 ## Project Understanding
 
 This project is `swift-format-proxy`, a smart wrapper around Xcode's bundled `swift-format` tool. Based on my analysis of the codebase and README:
@@ -71,3 +73,13 @@ This tool solves a specific integration problem: VS Code's apple-swift-format ex
 - Reliable exit code handling
 
 The tool is intentionally minimal and focused, avoiding feature creep while solving the core integration challenge effectively.
+
+## Recent Updates & Decisions
+
+*This section tracks significant changes and decisions made during development.*
+
+### August 25, 2025
+- **Added timestamp and decision log structure**: Enhanced copilot instructions with "Last updated" timestamp and "Recent Updates & Decisions" section for better change tracking and project history maintenance.
+- **Added SwiftArgumentParser dependency**: Introduced SwiftArgumentParser package to enable more robust command-line argument parsing. This maintains compatibility while providing better error handling and help documentation. The dependency is minimal and aligns with the project's focus on improving the CLI experience for VS Code integration.
+- **Updated SwiftArgumentParser to latest version**: Changed dependency specification from `from: "1.0.0"` to `.upToNextMajor(from: "1.5.0")` to ensure we always use the latest stable version (currently 1.6.1) while maintaining API compatibility within the major version.
+- **Added project version constant**: Defined version "1.0.1" as a constant in main.swift for use in version reporting and help text. Swift Package Manager doesn't support version properties in Package.swift, so the version is maintained in the source code where it can be accessed by SwiftArgumentParser for --version flags.
