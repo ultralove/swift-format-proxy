@@ -1,5 +1,7 @@
 # Copilot Instructions for swift-format-proxy
 
+*Last updated: September 18, 2025*
+
 ## Project Understanding
 
 This project is `swift-format-proxy`, a smart wrapper around Xcode's bundled `swift-format` tool. Based on my analysis of the codebase and README:
@@ -71,3 +73,10 @@ This tool solves a specific integration problem: VS Code's apple-swift-format ex
 - Reliable exit code handling
 
 The tool is intentionally minimal and focused, avoiding feature creep while solving the core integration challenge effectively.
+
+---
+
+## Recent Updates & Decisions
+
+### September 18, 2025
+- **Added timestamp and update tracking**: Established "Last updated" timestamp and "Recent Updates & Decisions" log section to maintain clear documentation of changes and their reasoning over time.
